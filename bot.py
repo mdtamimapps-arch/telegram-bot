@@ -10,8 +10,8 @@ def home():
 def run_flask():
     app.run(host='0.0.0.0', port=10000)
 
-# Flask থ্রেড শুরু করুন (বটের পাশাপাশি)
 threading.Thread(target=run_flask, daemon=True).start()
+
 import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
@@ -20,7 +20,7 @@ from database import *
 
 logging.basicConfig(level=logging.INFO)
 
-# --- কমান্ড হ্যান্ডলার (আগের মতো) ---
+# ---------- পূর্ববর্তী কমান্ড (start, total, member, saif, history, add) ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 স্বাগতম!\n\n"
@@ -29,7 +29,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/member <নাম> - ওই সদস্যের জমা দেখুন\n"
         "/saif - সাইফের বাসা+ওয়াইফাই+কারেন্টের হিসাব\n"
         "/history - সব খরচের তালিকা\n"
-        "/add - নতুন খরচ যোগ করুন"
+        "/add - নতুন খরচ যোগ করুন\n\n"
+        "👤 সদস্য প্রোফাইল:\n"
+        "/আকাশ, /প্রান্ত, /সামিউল, /তামীম, /মেহেদী, /সাইফ, /সাম্য, /লালন"
     )
 
 async def total(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -103,7 +105,76 @@ async def add_expense(update: Update, context: ContextTypes.DEFAULT_TYPE):
     add_new_expense(date, desc, paid_by, amount)
     await update.message.reply_text(f"✅ খরচ যোগ করা হয়েছে:\n{date} | {desc} | {paid_by} | {amount} টাকা")
 
-# --- নতুন অংশ: যেকোনো সাধারণ মেসেজের উত্তর দেওয়ার জন্য ---
+# ---------- 📌 নতুন: ৮টি সদস্য প্রোফাইল কমান্ড ----------
+def generate_profile(name):
+    """একটি সদস্যের সম্পূর্ণ প্রোফাইল তৈরি করে"""
+    deposit = get_member_deposit(name)
+    bills = get_member_bills(name)
+    expenses = get_member_expenses(name)
+    
+    msg = f"👤 **{name}**\n"
+    msg += f"💰 মিলে জমা: {deposit} টাকা\n\n"
+    
+    # বিলের তালিকা
+    msg += "📋 **বিলের বিবরণ (জুলাই ২০২৬):**\n"
+    total_bill = 0
+    total_paid = 0
+    for bill_type, amount, paid, paid_by in bills:
+        status = "✅ পরিশোধ করেছেন" if paid else "❌ বাকি"
+        if paid:
+            total_paid += amount
+            if paid_by:
+                status += f" (দিয়েছেন: {paid_by})"
+        total_bill += amount
+        msg += f"• {bill_type}: {amount} টাকা — {status}\n"
+    
+    msg += f"\n📊 **বিলের সারাংশ:**\n"
+    msg += f"মোট বিল: {total_bill} টাকা\n"
+    msg += f"পরিশোধ করেছেন: {total_paid} টাকা\n"
+    msg += f"বাকি: {total_bill - total_paid} টাকা\n\n"
+    
+    # মিলের খরচ (এই সদস্য যেসব খরচ করেছেন)
+    if expenses:
+        msg += "🛒 **মিলের খরচ (এই সদস্য দিয়েছেন):**\n"
+        for date, desc, amount in expenses:
+            msg += f"• {date} | {desc} | {amount} টাকা\n"
+    else:
+        msg += "🛒 মিলের কোনো খরচ করেননি।\n"
+    
+    # বিশেষ জমা (সাইফের মতো)
+    special = get_special_expense(name)
+    if special:
+        s_amount, s_cat = special
+        msg += f"\n🏠 **বিশেষ জমা:**\n{s_cat}: {s_amount} টাকা\n"
+    
+    return msg
+
+# প্রতিটি সদস্যের জন্য আলাদা হ্যান্ডলার তৈরি করা
+async def profile_akash(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(generate_profile('আকাশ'))
+
+async def profile_pranto(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(generate_profile('প্রান্ত'))
+
+async def profile_samiul(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(generate_profile('সামিউল'))
+
+async def profile_tamim(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(generate_profile('তামীম'))
+
+async def profile_mehedi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(generate_profile('মেহেদী'))
+
+async def profile_saif(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(generate_profile('সাইফ'))
+
+async def profile_samy(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(generate_profile('সাম্য'))
+
+async def profile_lalon(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(generate_profile('লালন'))
+
+# ---------- সাধারণ মেসেজের উত্তর ----------
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "🤖 আমি সচল আছি!\n"
@@ -115,7 +186,7 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
     
-    # কমান্ড হ্যান্ডলার যোগ করুন
+    # পুরোনো কমান্ড
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("total", total))
     app.add_handler(CommandHandler("member", member))
@@ -123,10 +194,20 @@ def main():
     app.add_handler(CommandHandler("history", history))
     app.add_handler(CommandHandler("add", add_expense))
     
-    # 💥 নতুন: যেকোনো সাধারণ টেক্সট মেসেজের জন্য হ্যান্ডলার
+    # 📌 নতুন: ৮টি প্রোফাইল কমান্ড (বাংলায়)
+    app.add_handler(CommandHandler("আকাশ", profile_akash))
+    app.add_handler(CommandHandler("প্রান্ত", profile_pranto))
+    app.add_handler(CommandHandler("সামিউল", profile_samiul))
+    app.add_handler(CommandHandler("তামীম", profile_tamim))
+    app.add_handler(CommandHandler("মেহেদী", profile_mehedi))
+    app.add_handler(CommandHandler("সাইফ", profile_saif))
+    app.add_handler(CommandHandler("সাম্য", profile_samy))
+    app.add_handler(CommandHandler("লালন", profile_lalon))
+    
+    # সাধারণ মেসেজ হ্যান্ডলার
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
     
-    print("🤖 বট চালু হয়েছে... (এখন যেকোনো মেসেজে সাড়া দেবে)")
+    print("🤖 বট চালু হয়েছে... (নতুন ফিচারসহ)")
     app.run_polling()
 
 if __name__ == "__main__":
