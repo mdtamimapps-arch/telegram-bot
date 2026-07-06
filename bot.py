@@ -1,3 +1,17 @@
+from flask import Flask
+import threading
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot is running!", 200
+
+def run_flask():
+    app.run(host='0.0.0.0', port=10000)
+
+# Flask থ্রেড শুরু করুন (বটের পাশাপাশি)
+threading.Thread(target=run_flask, daemon=True).start()
 import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
