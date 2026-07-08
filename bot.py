@@ -20,7 +20,7 @@ from database import *
 
 logging.basicConfig(level=logging.INFO)
 
-# ---------- পূর্ববর্তী কমান্ড (start, total, member, saif, history, add) ----------
+# ---------- পুরোনো কমান্ড ----------
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 স্বাগতম!\n\n"
@@ -30,8 +30,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/saif - সাইফের বাসা+ওয়াইফাই+কারেন্টের হিসাব\n"
         "/history - সব খরচের তালিকা\n"
         "/add - নতুন খরচ যোগ করুন\n\n"
-        "👤 সদস্য প্রোফাইল:\n"
-        "/আকাশ, /প্রান্ত, /সামিউল, /তামীম, /মেহেদী, /সাইফ, /সাম্য, /লালন"
+        "👤 সদস্য প্রোফাইল (ইংরেজি কমান্ড):\n"
+        "/akash, /pranto, /samiul, /tamim, /mehedi, /saif, /samy, /lalon"
     )
 
 async def total(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -105,9 +105,8 @@ async def add_expense(update: Update, context: ContextTypes.DEFAULT_TYPE):
     add_new_expense(date, desc, paid_by, amount)
     await update.message.reply_text(f"✅ খরচ যোগ করা হয়েছে:\n{date} | {desc} | {paid_by} | {amount} টাকা")
 
-# ---------- 📌 নতুন: ৮টি সদস্য প্রোফাইল কমান্ড ----------
+# ---------- প্রোফাইল জেনারেটর ----------
 def generate_profile(name):
-    """একটি সদস্যের সম্পূর্ণ প্রোফাইল তৈরি করে"""
     deposit = get_member_deposit(name)
     bills = get_member_bills(name)
     expenses = get_member_expenses(name)
@@ -115,7 +114,6 @@ def generate_profile(name):
     msg = f"👤 **{name}**\n"
     msg += f"💰 মিলে জমা: {deposit} টাকা\n\n"
     
-    # বিলের তালিকা
     msg += "📋 **বিলের বিবরণ (জুলাই ২০২৬):**\n"
     total_bill = 0
     total_paid = 0
@@ -133,7 +131,6 @@ def generate_profile(name):
     msg += f"পরিশোধ করেছেন: {total_paid} টাকা\n"
     msg += f"বাকি: {total_bill - total_paid} টাকা\n\n"
     
-    # মিলের খরচ (এই সদস্য যেসব খরচ করেছেন)
     if expenses:
         msg += "🛒 **মিলের খরচ (এই সদস্য দিয়েছেন):**\n"
         for date, desc, amount in expenses:
@@ -141,7 +138,6 @@ def generate_profile(name):
     else:
         msg += "🛒 মিলের কোনো খরচ করেননি।\n"
     
-    # বিশেষ জমা (সাইফের মতো)
     special = get_special_expense(name)
     if special:
         s_amount, s_cat = special
@@ -149,7 +145,7 @@ def generate_profile(name):
     
     return msg
 
-# প্রতিটি সদস্যের জন্য আলাদা হ্যান্ডলার তৈরি করা
+# ---------- ৮টি প্রোফাইল কমান্ড (ইংরেজি) ----------
 async def profile_akash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(generate_profile('আকাশ'))
 
@@ -184,31 +180,29 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 def main():
-    app = Application.builder().token(BOT_TOKEN).build()
+    bot_app = Application.builder().token(BOT_TOKEN).build()
     
-    # পুরোনো কমান্ড
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("total", total))
-    app.add_handler(CommandHandler("member", member))
-    app.add_handler(CommandHandler("saif", saif))
-    app.add_handler(CommandHandler("history", history))
-    app.add_handler(CommandHandler("add", add_expense))
+    bot_app.add_handler(CommandHandler("start", start))
+    bot_app.add_handler(CommandHandler("total", total))
+    bot_app.add_handler(CommandHandler("member", member))
+    bot_app.add_handler(CommandHandler("saif", saif))
+    bot_app.add_handler(CommandHandler("history", history))
+    bot_app.add_handler(CommandHandler("add", add_expense))
     
-    # 📌 নতুন: ৮টি প্রোফাইল কমান্ড (বাংলায়)
-    app.add_handler(CommandHandler("আকাশ", profile_akash))
-    app.add_handler(CommandHandler("প্রান্ত", profile_pranto))
-    app.add_handler(CommandHandler("সামিউল", profile_samiul))
-    app.add_handler(CommandHandler("তামীম", profile_tamim))
-    app.add_handler(CommandHandler("মেহেদী", profile_mehedi))
-    app.add_handler(CommandHandler("সাইফ", profile_saif))
-    app.add_handler(CommandHandler("সাম্য", profile_samy))
-    app.add_handler(CommandHandler("লালন", profile_lalon))
+    # ইংরেজি কমান্ড (বাংলায় প্রোফাইল দেখাবে)
+    bot_app.add_handler(CommandHandler("akash", profile_akash))
+    bot_app.add_handler(CommandHandler("pranto", profile_pranto))
+    bot_app.add_handler(CommandHandler("samiul", profile_samiul))
+    bot_app.add_handler(CommandHandler("tamim", profile_tamim))
+    bot_app.add_handler(CommandHandler("mehedi", profile_mehedi))
+    bot_app.add_handler(CommandHandler("saif", profile_saif))
+    bot_app.add_handler(CommandHandler("samy", profile_samy))
+    bot_app.add_handler(CommandHandler("lalon", profile_lalon))
     
-    # সাধারণ মেসেজ হ্যান্ডলার
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+    bot_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
     
-    print("🤖 বট চালু হয়েছে... (নতুন ফিচারসহ)")
-    app.run_polling()
+    print("🤖 বট চালু হয়েছে... (সব ফিচারসহ)")
+    bot_app.run_polling()
 
 if __name__ == "__main__":
     init_data()
